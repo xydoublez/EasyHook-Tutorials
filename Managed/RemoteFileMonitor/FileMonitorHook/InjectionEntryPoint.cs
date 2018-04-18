@@ -29,6 +29,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace FileMonitorHook
 {
@@ -84,27 +85,47 @@ namespace FileMonitorHook
             // Install hooks
 
             // CreateFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx
-            var createFileHook = EasyHook.LocalHook.Create(
-                EasyHook.LocalHook.GetProcAddress("kernel32.dll", "CreateFileW"),
-                new CreateFile_Delegate(CreateFile_Hook),
-                this);
+            //var createFileHook = EasyHook.LocalHook.Create(
+            //    EasyHook.LocalHook.GetProcAddress("kernel32.dll", "CreateFileW"),
+            //    new CreateFile_Delegate(CreateFile_Hook),
+            //    this);
 
-            // ReadFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
-            var readFileHook = EasyHook.LocalHook.Create(
-                EasyHook.LocalHook.GetProcAddress("kernel32.dll", "ReadFile"),
-                new ReadFile_Delegate(ReadFile_Hook),
-                this);
+            //SetWindowText
+            var setWindowTextHook = EasyHook.LocalHook.Create(
+                 EasyHook.LocalHook.GetProcAddress("user32.dll", "SetWindowTextW"),
+                 new SetWindowTextDelegate(SetWindowTextHook),
+                 this
+                );
+            var setGetLocalTimeHook = EasyHook.LocalHook.Create(
+               EasyHook.LocalHook.GetProcAddress("kernel32.dll", "GetLocalTime"),
+               new GetLocalTimeDelegate(GetLocalTimeHook),
+               this
+              );
 
-            // WriteFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
-            var writeFileHook = EasyHook.LocalHook.Create(
-                EasyHook.LocalHook.GetProcAddress("kernel32.dll", "WriteFile"),
-                new WriteFile_Delegate(WriteFile_Hook),
-                this);
+            var setGetSystemTimeAsFileTimeHook = EasyHook.LocalHook.Create(
+             EasyHook.LocalHook.GetProcAddress("kernel32.dll", "GetSystemTimeAsFileTime"),
+             new GetSystemTimeAsFileTimeDelegate(GetSystemTimeAsFileTimeHook),
+             this
+            );
+            //// ReadFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
+            //var readFileHook = EasyHook.LocalHook.Create(
+            //    EasyHook.LocalHook.GetProcAddress("kernel32.dll", "ReadFile"),
+            //    new ReadFile_Delegate(ReadFile_Hook),
+            //    this);
+
+            //// WriteFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
+            //var writeFileHook = EasyHook.LocalHook.Create(
+            //    EasyHook.LocalHook.GetProcAddress("kernel32.dll", "WriteFile"),
+            //    new WriteFile_Delegate(WriteFile_Hook),
+            //    this);
 
             // Activate hooks on all threads except the current thread
-            createFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
-            readFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
-            writeFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            //createFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            //readFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            //writeFileHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            setWindowTextHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            setGetLocalTimeHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            setGetSystemTimeAsFileTimeHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
 
             _server.ReportMessage("CreateFile, ReadFile and WriteFile hooks installed");
 
@@ -143,10 +164,12 @@ namespace FileMonitorHook
             }
 
             // Remove hooks
-            createFileHook.Dispose();
-            readFileHook.Dispose();
-            writeFileHook.Dispose();
-
+            //createFileHook.Dispose();
+            //readFileHook.Dispose();
+            //writeFileHook.Dispose();
+            setWindowTextHook.Dispose();
+            setGetLocalTimeHook.Dispose();
+            setGetSystemTimeAsFileTimeHook.Dispose();
             // Finalise cleanup of hooks
             EasyHook.LocalHook.Release();
         }
@@ -162,7 +185,98 @@ namespace FileMonitorHook
         /// <returns></returns>
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern uint GetFinalPathNameByHandle(IntPtr hFile, [MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpszFilePath, uint cchFilePath, uint dwFlags);
+        #region setWindowText
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool SetWindowTextW(IntPtr hwnd, String lpString);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall,
+                          CharSet = CharSet.Unicode,
+                          SetLastError = true)]
+        delegate bool SetWindowTextDelegate(IntPtr hwnd, String lpString);
+        bool SetWindowTextHook(IntPtr hwnd, String lpString)
+        {
+             
+            //System.Diagnostics.Trace.WriteLine("setwindow:"+hwnd.ToInt32().ToString("X"));
+            return SetWindowTextW(hwnd, lpString);
+             
+        }
+        #endregion
+        #region 获取时间
 
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+        delegate void GetLocalTimeDelegate(out SYSTEMTIME lpSystemTime);
+        [StructLayout(LayoutKind.Sequential)]
+
+        private struct SYSTEMTIME
+        {
+            [MarshalAs(UnmanagedType.U2)] public short Year;
+            [MarshalAs(UnmanagedType.U2)] public short Month;
+            [MarshalAs(UnmanagedType.U2)] public short DayOfWeek;
+            [MarshalAs(UnmanagedType.U2)] public short Day;
+            [MarshalAs(UnmanagedType.U2)] public short Hour;
+            [MarshalAs(UnmanagedType.U2)] public short Minute;
+            [MarshalAs(UnmanagedType.U2)] public short Second;
+            [MarshalAs(UnmanagedType.U2)] public short Milliseconds;
+
+            public SYSTEMTIME(DateTime dt)
+            {
+                dt = dt.ToUniversalTime();  // SetSystemTime expects the SYSTEMTIME in UTC
+                Year = (short)dt.Year;
+                Month = (short)dt.Month;
+                DayOfWeek = (short)dt.DayOfWeek;
+                Day = (short)dt.Day;
+                Hour = (short)dt.Hour;
+                Minute = (short)dt.Minute;
+                Second = (short)dt.Second;
+                Milliseconds = (short)dt.Millisecond;
+            }
+        }
+        [DllImport("kernel32.dll")]
+        static extern void GetLocalTime(out SYSTEMTIME lpSystemTime);
+
+        static void GetLocalTimeHook(out SYSTEMTIME lpSystemTime)
+        {
+            lpSystemTime = new SYSTEMTIME(DateTime.Parse("2008-01-01"));
+        }
+        #endregion
+        #region GetSystemTimes
+        
+        [StructLayout(LayoutKind.Sequential)]
+        public struct FILETIME
+        {
+            public uint DateTimeLow;
+            public uint DateTimeHigh;
+        }
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GetSystemTimes(
+            out FILETIME lpIdleTime,
+            out FILETIME lpKernelTime,
+            out FILETIME lpUserTime
+            );
+        #endregion
+        #region GetSystemTimeAsFileTime
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+        delegate void GetSystemTimeAsFileTimeDelegate(out FILETIME FILETIME);
+        [DllImport("kernel32.dll")]
+        static extern void GetSystemTimeAsFileTime(out FILETIME FILETIME);
+        static void GetSystemTimeAsFileTimeHook(out FILETIME FILETIME)
+        {
+            FILETIME = DateTimeToFiletime(DateTime.Parse("2008-01-01"));
+        }
+        //public static DateTime FiletimeToDateTime(FILETIME fileTime)
+        //{
+        //    long hFT2 = (((long)fileTime.dwHighDateTime) << 32) | ((uint)fileTime.dwLowDateTime);
+        //    return DateTime.FromFileTimeUtc(hFT2);
+        //}
+
+        public static FILETIME DateTimeToFiletime(DateTime time)
+        {
+            FILETIME ft;
+            long hFT1 = time.ToFileTimeUtc();
+            ft.DateTimeLow = (uint)(hFT1 & 0xFFFFFFFF);
+            ft.DateTimeHigh = (uint)(hFT1 >> 32);
+            return ft;
+        }
+        #endregion
         #region CreateFileW Hook
 
         /// <summary>
