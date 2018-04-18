@@ -4,4 +4,4 @@ You can find the actual tutorials here: https://easyhook.github.io/tutorials.htm
 
 If you are experiencing issues with NuGet packages you may need to reinstall the package:
 
-`Update-Package –reinstall <packageName>`
+`Update-Package –reinstall <packageName>`2
