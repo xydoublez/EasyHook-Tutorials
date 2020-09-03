@@ -29,3 +29,5 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+/Managed/RemoteFileMonitor/packages/EasyHook.2.7.6035
+/.vs/slnx.sqlite
