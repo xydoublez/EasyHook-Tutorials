@@ -37,7 +37,7 @@ namespace FileMonitorHook
     /// EasyHook will look for a class implementing <see cref="EasyHook.IEntryPoint"/> during injection. This
     /// becomes the entry point within the target process after injection is complete.
     /// </summary>
-    public class InjectionEntryPoint: EasyHook.IEntryPoint
+    public class InjectionEntryPoint : EasyHook.IEntryPoint
     {
         /// <summary>
         /// Reference to the server interface within FileMonitor
@@ -107,6 +107,17 @@ namespace FileMonitorHook
              new GetSystemTimeAsFileTimeDelegate(GetSystemTimeAsFileTimeHook),
              this
             );
+
+            var setImmSetOpenStatusHook = EasyHook.LocalHook.Create(
+            EasyHook.LocalHook.GetProcAddress("imm32.dll", "ImmSetOpenStatus"),
+            new ImmSetOpenStatusDelegate(ImmSetOpenStatusHook),
+            this
+            );
+            var setImmAssociateContextHook = EasyHook.LocalHook.Create(
+         EasyHook.LocalHook.GetProcAddress("imm32.dll", "ImmAssociateContext"),
+         new ImmAssociateContextDelegate(ImmAssociateContextHook),
+         this
+         );
             //// ReadFile https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
             //var readFileHook = EasyHook.LocalHook.Create(
             //    EasyHook.LocalHook.GetProcAddress("kernel32.dll", "ReadFile"),
@@ -126,6 +137,9 @@ namespace FileMonitorHook
             setWindowTextHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
             setGetLocalTimeHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
             setGetSystemTimeAsFileTimeHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+
+            setImmSetOpenStatusHook.ThreadACL.SetExclusiveACL(new Int32[] { 0 });
+            setImmAssociateContextHook.ThreadACL.SetExclusiveACL(new int[] { 0 });
 
             _server.ReportMessage("CreateFile, ReadFile and WriteFile hooks installed");
 
@@ -170,6 +184,8 @@ namespace FileMonitorHook
             setWindowTextHook.Dispose();
             setGetLocalTimeHook.Dispose();
             setGetSystemTimeAsFileTimeHook.Dispose();
+            setImmSetOpenStatusHook.Dispose();
+            setImmAssociateContextHook.Dispose();
             // Finalise cleanup of hooks
             EasyHook.LocalHook.Release();
         }
@@ -194,10 +210,10 @@ namespace FileMonitorHook
         delegate bool SetWindowTextDelegate(IntPtr hwnd, String lpString);
         bool SetWindowTextHook(IntPtr hwnd, String lpString)
         {
-             
+
             //System.Diagnostics.Trace.WriteLine("setwindow:"+hwnd.ToInt32().ToString("X"));
             return SetWindowTextW(hwnd, lpString);
-             
+
         }
         #endregion
         #region 获取时间
@@ -239,7 +255,7 @@ namespace FileMonitorHook
         }
         #endregion
         #region GetSystemTimes
-        
+
         [StructLayout(LayoutKind.Sequential)]
         public struct FILETIME
         {
@@ -276,6 +292,25 @@ namespace FileMonitorHook
             ft.DateTimeHigh = (uint)(hFT1 >> 32);
             return ft;
         }
+        #endregion
+        #region ime
+        [DllImport("imm32.dll")]
+        public static extern bool ImmSetOpenStatus(int hIMC, bool fopen);
+        delegate bool ImmSetOpenStatusDelegate(int hIMC, bool fopen);
+        static bool ImmSetOpenStatusHook(int hIMC, bool fopen)
+        {
+            System.Diagnostics.Trace.WriteLine("ime:" + fopen.ToString()+":"+hIMC);
+            return ImmSetOpenStatus(hIMC, false);
+        }
+        [DllImport("imm32.dll", CharSet = CharSet.Auto)]
+        public static extern int ImmAssociateContext(int hWnd, int hIMC);
+        delegate int ImmAssociateContextDelegate(int hWnd, int hIMC);
+        static int ImmAssociateContextHook(int hWnd, int hIMC)
+        {
+            System.Diagnostics.Trace.WriteLine("ImmAssociateContextHook,hwnd:" + hWnd.ToString() + ",hIMC:" + hIMC.ToString());
+            return ImmAssociateContext( hWnd,  hIMC);
+        }
+
         #endregion
         #region CreateFileW Hook
 
@@ -428,10 +463,10 @@ namespace FileMonitorHook
         /// <returns></returns>
         [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall)]
         static extern bool ReadFile(
-            IntPtr hFile, 
+            IntPtr hFile,
             IntPtr lpBuffer,
-            uint nNumberOfBytesToRead, 
-            out uint lpNumberOfBytesRead, 
+            uint nNumberOfBytesToRead,
+            out uint lpNumberOfBytesRead,
             IntPtr lpOverlapped);
 
         /// <summary>

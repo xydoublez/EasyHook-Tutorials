@@ -55,14 +55,16 @@ namespace FileMonitor
 
             // Get the full path to the assembly we want to inject into the target process
             string injectionLibrary = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "FileMonitorHook.dll");
-            string ar = "\"-Xbootclasspath/a:C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\" \"-Dcom.fortify.InstallRoot=C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\" -jar \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\\private-bin\\awb\\eclipse\\awb-startup.jar\" -os win32 -ws win32 -arch x86 -launcher \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\\private-bin\\awb\\eclipse\\launch2.exe\" -name Launch2 -showsplash 600 -exitdata 22d0_1c8 -application com.fortify.awb.Main -vm \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\jre\\bin\\javaw.exe\" -vmargs -Xmx500M -XX:MaxPermSize=96m \"-Xbootclasspath/a:C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\" \"-Dcom.fortify.InstallRoot=C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\" -jar awb-startup.jar";
+            //string ar = "\"-Xbootclasspath/a:C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\" \"-Dcom.fortify.InstallRoot=C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\" -jar \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\\private-bin\\awb\\eclipse\\awb-startup.jar\" -os win32 -ws win32 -arch x86 -launcher \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\\private-bin\\awb\\eclipse\\launch2.exe\" -name Launch2 -showsplash 600 -exitdata 22d0_1c8 -application com.fortify.awb.Main -vm \"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\jre\\bin\\javaw.exe\" -vmargs -Xmx500M -XX:MaxPermSize=96m \"-Xbootclasspath/a:C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\" \"-Dcom.fortify.InstallRoot=C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\" -jar awb-startup.jar";
+            string ar = "";
+
             try
             {
                 //string ar = "\"C:\\Program Files (x86)\\Fortify Software\\Fortify SCA 5.1\\bin\\..\\Core\\private-bin\\awb\\eclipse\\launch2.exe\" -name Launch2 -showsplash 600 \"c:\\Program Files(x86)\\Fortify Software\\Fortify SCA 5.1\\Core\\private-bin\\awb\\eclipse\\plugins\\org.eclipse.platform_3.2.0.v20060601\\splash.bmp\"";
 
 
                 Process p = new Process();
-                p.StartInfo.FileName = @"C:\Program Files (x86)\Fortify Software\Fortify SCA 5.1\jre\bin\javaw.exe";
+                p.StartInfo.FileName = @"C:\Users\sfx\AppData\Local\Google\Chrome\Application\chrome.exe";
                 p.StartInfo.Arguments = ar;
                 p.StartInfo.UseShellExecute = true;
                 p.Start();
